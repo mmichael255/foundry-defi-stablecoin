@@ -64,3 +64,8 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+
+1. Relative Stability: Anchored or Pegged -> $1.00
+2. Stability Mechanism(Minting) Algorithmic(Decentralized)
+3. Collateral: Exogenous
