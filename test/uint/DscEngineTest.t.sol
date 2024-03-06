@@ -4,27 +4,28 @@ pragma solidity ^0.8.18;
 import {Test, console} from "forge-std/Test.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
-import {DeploDsc} from "../../script/DeployDSC.s.sol";
+import {DeployDsc} from "../../script/DeployDSC.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 
 contract DscEngineTest is Test {
     DSCEngine public dscEngine;
     DecentralizedStableCoin public dsc;
-    DeploDsc public deployer;
+    DeployDsc public deployer;
     HelperConfig public helperConfig;
     address public ethPriceFeed;
     address public btcPriceFeed;
     address public weth;
+    address public wbtc;
     uint256 public AMOUNT_CALLATERAL = 10 ether;
     uint256 public STARTING_ERC20_BALANCE = 10 ether;
 
     address public USER = makeAddr("user");
 
     function setUp() public {
-        deployer = new DeploDsc();
+        deployer = new DeployDsc();
         (dsc, dscEngine, helperConfig) = deployer.run();
-        (weth,, ethPriceFeed, btcPriceFeed,) = helperConfig.activeNetworkConfig();
+        (weth, wbtc, ethPriceFeed, btcPriceFeed,) = helperConfig.activeNetworkConfig();
         ERC20Mock(weth).mint(USER, AMOUNT_CALLATERAL);
     }
 
@@ -46,12 +47,36 @@ contract DscEngineTest is Test {
         assert(expectedAmount == amountCollateral);
     }
 
-    function testGetUsdValue() public {
+    function testGetUsdValueWeth() public {
         uint256 amount = 15e18;
         uint256 expectedPrice = 2000 * 15e18;
         console.log("Expected price: ", expectedPrice);
         uint256 valueInUsd = dscEngine.getUsdValue(weth, amount);
         assert(expectedPrice == valueInUsd);
+    }
+
+    function testGetUsdValueWBtcAndWEth() public {
+        uint256 amount = 15e18;
+        uint256 expectedPriceEth = 2000 * 15e18;
+        uint256 expectedPriceBtc = 6000 * 15e18;
+        console.log("Expected price: ", expectedPriceEth);
+        console.log("Expected price: ", expectedPriceBtc);
+        uint256 valueInUsdEth = dscEngine.getUsdValue(weth, amount);
+        uint256 valueInUsdBtc = dscEngine.getUsdValue(wbtc, amount);
+        assert(expectedPriceEth == valueInUsdEth);
+        assert(valueInUsdBtc == expectedPriceBtc);
+    }
+
+    function testGetUsdValueWBtcAndWEthEq0() public {
+        uint256 amount = 0;
+        uint256 expectedPriceEth = 2000 * amount;
+        uint256 expectedPriceBtc = 6000 * amount;
+        console.log("Expected price: ", expectedPriceEth);
+        console.log("Expected price: ", expectedPriceBtc);
+        uint256 valueInUsdEth = dscEngine.getUsdValue(weth, amount);
+        uint256 valueInUsdBtc = dscEngine.getUsdValue(wbtc, amount);
+        assert(expectedPriceEth == valueInUsdEth);
+        assert(valueInUsdBtc == expectedPriceBtc);
     }
 
     function testRevertCollateralZero() public {
