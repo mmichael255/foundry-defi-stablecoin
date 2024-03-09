@@ -14,12 +14,14 @@ import {DeployDsc} from "../../script/DeployDSC.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Handler} from "./Handler.t.sol";
 
 contract InvariantsTest is StdInvariant, Test {
     DeployDsc public deployer;
     DSCEngine public dscEngine;
     DecentralizedStableCoin public dsc;
     HelperConfig public helperConfig;
+    Handler public handler;
     address public weth;
     address public wbtc;
     address public wethPriceFeed;
@@ -29,6 +31,8 @@ contract InvariantsTest is StdInvariant, Test {
         deployer = new DeployDsc();
         (dsc, dscEngine, helperConfig) = deployer.run();
         (weth, wbtc, wethPriceFeed, wbtcPriceFeed,) = helperConfig.activeNetworkConfig();
+        handler = new Handler(dscEngine, dsc);
+        targetContract(address(handler));
     }
 
     function invariant_protocalMustBeMoreValueThanTotalSupply() public view {

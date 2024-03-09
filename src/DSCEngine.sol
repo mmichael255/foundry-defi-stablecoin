@@ -27,6 +27,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {OracleLib} from "./libraries/OracleLib.sol";
 
 /**
  * @title DSCEngine
@@ -55,9 +56,14 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFacotrOK();
     error DSCEngine__HealthFacotrNotImproved();
 
+    ////////////////
+    //Type      //
+    ////////////////
+    using OracleLib for AggregatorV3Interface;
     ////////////////////
     //State Variables //
     ////////////////////
+
     uint256 private constant LIQUIDATION_THREHOLD = 50; //this mean you need to be 200% over-collateralized
     uint256 private constant LIQUIDATION_BONUS = 10;
     uint256 private constant LIQUIDATION_PRECISION = 100;
@@ -289,7 +295,7 @@ contract DSCEngine is ReentrancyGuard {
         returns (uint256)
     {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[tokenCollateralAddress]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.checkStaleLatestRoundData();
         return (weiDebt * 1e18) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
@@ -308,7 +314,7 @@ contract DSCEngine is ReentrancyGuard {
      */
     function getUsdValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.checkStaleLatestRoundData();
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
@@ -318,5 +324,13 @@ contract DSCEngine is ReentrancyGuard {
         returns (uint256 totalDscMinted, uint256 totalValueInCollateral)
     {
         return _getAccountInfomation(user);
+    }
+
+    function getCollateralTokens() public view returns (address[] memory) {
+        return s_collateralToken;
+    }
+
+    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+        return s_collateralDeposted[user][token];
     }
 }
